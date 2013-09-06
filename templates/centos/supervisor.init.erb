@@ -1,0 +1,94 @@
+#!/bin/bash
+#
+# supervisor init script
+# Author: Rob Tandy
+# Date: 2012-10-30
+# chkconfig: 2345 60 60
+#
+
+# Source function library
+. /etc/init.d/functions
+
+PIDFILE=/var/run/supervisord.pid
+LOCKFILE=/var/lock/subsys/supervisor
+
+start() {
+    echo -n "Starting supervisord"
+    # Start me up!
+    if [ -f $LOCKFILE ]
+    then
+        echo_failure
+        echo ""
+        echo "supervisord appears to be already running."
+        echo ""
+    else
+    /usr/bin/supervisord
+        # save pid of shell script for later to find python process as a child
+        # of this one
+        PID=$!
+        echo $PID > $PIDFILE
+        touch $LOCKFILE
+
+        # all done
+        echo_success
+        echo ""
+    fi
+}
+
+stop() {
+    echo -n $"Stopping supervisor"
+
+    if [ -f $PIDFILE ]
+    then
+        pid=$(cat $PIDFILE)
+    fi
+
+    RETVAL=-1
+
+    if [ ${#pid} -gt 0 ]
+    then
+    kill $pid > /dev/null > /dev/null 2> /dev/null;
+        RETVAL=$?
+    fi
+
+    if [ $RETVAL -eq 0 ]
+    then
+       rm -f $PIDFILE
+       rm -f $LOCKFILE
+       echo_success
+       echo
+    else
+       echo_failure
+       echo
+    fi
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    stop
+    start
+}
+
+case "$1" in
+  start)
+      start
+    ;;
+  stop)
+      stop
+    ;;
+  status)
+    status appserver
+    ;;
+  restart)
+      restart
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart}"
+    exit 1
+esac
+
+exit $?
